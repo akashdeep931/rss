@@ -51,7 +51,7 @@ func (apiCfg *apiConfig) handlerFetchUserByAPIKey(w http.ResponseWriter, r *http
 
 	user, err := apiCfg.DB.GetUserByAPIKey(r.Context(), apiKey)
 	if err != nil {
-		respondWithError(w, 404, fmt.Sprintf("Couldn´t find user: %s", err.Error()))
+		respondWithError(w, 404, "Couldn't find user")
 		return
 	}
 

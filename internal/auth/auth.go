@@ -31,7 +31,7 @@ func GetAPIKey(headers http.Header) (string, error) {
 	key := vals[1]
 
 	if len(key) < 64 {
-		return "", fmt.Errorf("malformed api_key provided: %s", vals[1])
+		return "", errors.New("malformed api_key provided")
 	}
 
 	return key, nil
