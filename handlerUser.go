@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/akashdeep931/rss/internal/auth"
 	"github.com/akashdeep931/rss/internal/db"
 	"github.com/google/uuid"
 )
@@ -35,6 +36,22 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		respondWithError(w, 500, fmt.Sprintf("Couldn't create user: %s", err.Error()))
+		return
+	}
+
+	respondWithJSON(w, 201, dbUserToUser(user))
+}
+
+func (apiCfg *apiConfig) handlerFetchUserByAPIKey(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, 401, fmt.Sprintf("Auth error: %s", err.Error()))
+		return
+	}
+
+	user, err := apiCfg.DB.GetUserByAPIKey(r.Context(), apiKey)
+	if err != nil {
+		respondWithError(w, 404, fmt.Sprintf("Couldn´t find user: %s", err.Error()))
 		return
 	}
 
