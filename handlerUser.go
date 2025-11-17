@@ -27,10 +27,10 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 	}
 
 	user, err := apiCfg.DB.CreateUser(r.Context(), db.CreateUserParams{
-		ID: uuid.New(),
+		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		Name: params.Name,
+		Name:      params.Name,
 	})
 
 	if err != nil {
@@ -43,4 +43,23 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 
 func handlerFetchUserByAPIKey(w http.ResponseWriter, r *http.Request, user db.User) {
 	respondWithJSON(w, 200, dbUserToUser(user))
+}
+
+func (apiCfg *apiConfig) handlerGetPostsForUser(w http.ResponseWriter, r *http.Request, user db.User) {
+	dbPosts, err := apiCfg.DB.GetPostsForUser(r.Context(), db.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  10,
+	})
+	if err != nil {
+		respondWithError(w, 500, fmt.Sprintf("Couldn't get posts by user: %s", err.Error()))
+		return
+	}
+
+	posts := []Post{}
+
+	for _, dbPost := range dbPosts {
+		posts = append(posts, dbPostToPost(dbPost))
+	}
+
+	respondWithJSON(w, 200, posts)
 }
