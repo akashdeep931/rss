@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/akashdeep931/rss/internal/db"
+	"github.com/google/uuid"
 )
 
 func startScraping(db *db.Queries, concurrency int, timeBetweenRequest time.Duration) {
@@ -34,10 +36,10 @@ func startScraping(db *db.Queries, concurrency int, timeBetweenRequest time.Dura
 	}
 }
 
-func scrapeFeed(wg *sync.WaitGroup, ctx context.Context, db *db.Queries, feed db.Feed) {
+func scrapeFeed(wg *sync.WaitGroup, ctx context.Context, dbConn *db.Queries, feed db.Feed) {
 	defer wg.Done()
 
-	_, err := db.MarkFeedAsFetched(ctx, feed.ID)
+	_, err := dbConn.MarkFeedAsFetched(ctx, feed.ID)
 	if err != nil {
 		log.Println("error marking feed as fetched:", err.Error())
 		return
@@ -50,7 +52,32 @@ func scrapeFeed(wg *sync.WaitGroup, ctx context.Context, db *db.Queries, feed db
 	}
 
 	for _, item := range rssFeed.Channel.Item {
-		log.Println("Found post", item.Title, "on feed", feed.Name)
+		var description sql.NullString
+
+		if len(item.Description) > 0 {
+			description = sql.NullString{String: item.Description, Valid: true}
+		}
+
+		pubAt, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Printf("couldn't parse date %v with err %s", item.PubDate, err.Error())
+			continue
+		}
+
+		_, err = dbConn.CreatePost(ctx, db.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Description: description,
+			PublishedAt: pubAt,
+			Url:         item.Link,
+			FeedID:      feed.ID,
+		})
+		if err != nil {
+			log.Println("failed to create post:", err.Error())
+		}
 	}
+
 	log.Printf("Feed %s collected, %d posts found", feed.Name, len(rssFeed.Channel.Item))
 }
