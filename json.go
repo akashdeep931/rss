@@ -31,3 +31,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.WriteHeader(code)
 	w.Write(data)
 }
+
+func respondWithStatus(w http.ResponseWriter, code int) {
+	w.WriteHeader(code)
+}
